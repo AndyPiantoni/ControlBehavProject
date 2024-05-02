@@ -149,6 +149,8 @@ class MovOdorArena(BaseArena):
                 rgb = np.array(color_cycle_rgb[i % num_odor_sources]) / 255
                 rgba = (*rgb, 1)
                 marker_colors.append(rgba)
+
+        self.marker_bodies = []
         for i, (pos, rgba) in enumerate(zip(self.odor_source, marker_colors)):
             marker_body = self.root_element.worldbody.add(
                 "body", name=f"odor_source_marker_{i}", pos=pos, mocap=True
@@ -156,7 +158,7 @@ class MovOdorArena(BaseArena):
             marker_body.add(
                 "geom", type="capsule", size=(marker_size, marker_size), rgba=rgba
             )
-            self.marker_body = marker_body
+            self.marker_bodies.append(marker_body)
         
         self.move_speed = move_speed
         self.curr_time = 0
@@ -171,7 +173,7 @@ class MovOdorArena(BaseArena):
             raise ValueError("Invalid move_direction")
 
 
-        # Reshape odor source and peak intensity arrays to simplify future claculations
+        # Reshape odor source and peak intensity arrays to simplify future claculations (This is deprecated, use get_olfaction instead)
         _odor_source_repeated = self.odor_source[:, np.newaxis, np.newaxis, :]
         _odor_source_repeated = np.repeat(
             _odor_source_repeated, self.odor_dimensions, axis=1
@@ -216,8 +218,15 @@ class MovOdorArena(BaseArena):
 
         Output - Sum over the first axis: [k, w]
         """
+        odor_source_repeated = self.odor_source[:, np.newaxis, np.newaxis, :]
+        odor_source_repeated = np.repeat(
+            odor_source_repeated, self.odor_dimensions, axis=1
+        )
+        odor_source_repeated = np.repeat(
+            odor_source_repeated, self.num_sensors, axis=2
+        )
         antennae_pos_repeated = antennae_pos[np.newaxis, np.newaxis, :, :]
-        dist_3d = antennae_pos_repeated - self.odor_source  # (n, k, w, 3)
+        dist_3d = antennae_pos_repeated - odor_source_repeated  # (n, k, w, 3)
         dist_euc = np.linalg.norm(dist_3d, axis=3)  # (n, k, w)
         scaling = self.diffuse_func(dist_euc)  # (n, k, w)
         intensity = self._peak_intensity_repeated * scaling  # (n, k, w)
@@ -235,24 +244,8 @@ class MovOdorArena(BaseArena):
         dt : float
             Time step to calculate the movement.
         """
-        heading_vec = np.array([1, 2 * np.cos(self.curr_time * 3) * self.y_mult,0])
-        heading_vec /= np.linalg.norm(heading_vec)
+        for i in range(len(self.odor_source)):
+            physics.bind(self.marker_bodies[i]).mocap_pos = self.odor_source[i]
         
-        self.odor_source[0] += self.move_speed * heading_vec * dt
-        
-        _odor_source_repeated = self.odor_source[:, np.newaxis, np.newaxis, :]
-        _odor_source_repeated = np.repeat(
-            _odor_source_repeated, self.odor_dimensions, axis=1
-        )
-        _odor_source_repeated = np.repeat(
-            _odor_source_repeated, self.num_sensors, axis=2
-        )
-        self._odor_source_repeated = _odor_source_repeated
-        _peak_intensity_repeated = self.peak_odor_intensity[:, :, np.newaxis]
-        _peak_intensity_repeated = np.repeat(
-            _peak_intensity_repeated, self.num_sensors, axis=2
-        )
-        self._peak_intensity_repeated = _peak_intensity_repeated
-        self.curr_time += dt
-        physics.bind(self.marker_body).mocap_pos = self.odor_source[0]
-        # Update the position of any visual markers if they are used
+        #physics.bind(self.marker_bodies[0]).mocap_pos = self.odor_source[0]
+
