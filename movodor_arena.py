@@ -113,7 +113,7 @@ class MovOdorArena(BaseArena):
         )
         self.friction = friction
         self.num_sensors = num_sensors
-        self.odor_source = np.array(odor_source)
+        self.odor_source = np.array(odor_source, dtype=float)
         self.peak_odor_intensity = np.array(peak_intensity)
         self.num_odor_sources = self.odor_source.shape[0]
         if self.odor_source.shape[0] != self.peak_odor_intensity.shape[0]:
