@@ -29,9 +29,9 @@ class FemaleDecisionHybriTurnFly(Fly):
         self,
         timestep,
         preprogrammed_steps=None,
-        odor_dimensions=2,          # relative to odor
-        odor_threshold=0.15,        # relative to odor
-        odor_own_smelling=0.1058,   # relative to odor
+        odor_dimensions=2,                    # relative to odor
+        odor_threshold=[0.135, 0.029],        # relative to odor
+        odor_own_smelling=0.1058,             # relative to odor
         intrinsic_freqs=np.ones(6) * 12,
         intrinsic_amps=np.ones(6) * 1,
         phase_biases=_tripod_phase_biases,
@@ -288,6 +288,7 @@ class FemaleDecisionHybriTurnFly(Fly):
          - "reject" : if aversive odor is detected
          - "accept" : if attractive odor is detected
          - "fly_close_but_no_decision" : if attractive odor is detected but not enough to make a decision
+         - "fly_nearby" : if attractive odor is detected for a long time
          - "no_fly_nearby" : if no odor is detected
          
         Parameters
@@ -303,15 +304,17 @@ class FemaleDecisionHybriTurnFly(Fly):
         odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
         
         # Decision making
-        if np.max(np.abs(odor_intesity_smelled)) > self.odor_threshold:
+        if odor_intesity_smelled[0] > self.odor_threshold[0] or odor_intesity_smelled[1] > self.odor_threshold[1]:
             self.time_since_odor_high += timestep
             if self.time_since_odor_high > 1: #in seconds
                 if odor_intesity_smelled[1] > 0: # aversive odor
                     mating_decision = "reject"
-                elif odor_intesity_smelled[0] > self.odor_own_smelling+0.05: # attractive odor (own smelling+margin)
+                elif odor_intesity_smelled[0] > self.odor_own_smelling+0.01: # attractive odor (own smelling+margin)
                     mating_decision = "accept"
                 else:
                     mating_decision = "fly_close_but_no_decision"
+            else:
+                mating_decision = "fly_nearby"
         else:
             self.time_since_odor_high = 0
             mating_decision = "no_fly_nearby"
