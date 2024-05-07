@@ -29,6 +29,9 @@ class FemaleDecisionHybriTurnFly(Fly):
         self,
         timestep,
         preprogrammed_steps=None,
+        odor_dimensions=2,          # relative to odor
+        odor_threshold=0.15,        # relative to odor
+        odor_own_smelling=0.1058,   # relative to odor
         intrinsic_freqs=np.ones(6) * 12,
         intrinsic_amps=np.ones(6) * 1,
         phase_biases=_tripod_phase_biases,
@@ -64,6 +67,13 @@ class FemaleDecisionHybriTurnFly(Fly):
         self.correction_rates = correction_rates
         self.amplitude_range = amplitude_range
         self.draw_corrections = draw_corrections
+
+        # Relative to odor
+        self.odor_dimensions = odor_dimensions
+        self.odor_threshold = odor_threshold
+        self.odor_own_smelling = odor_own_smelling
+
+        self.time_since_odor_high = 0
 
         # Define action and observation spaces
         self.action_space = spaces.Box(*amplitude_range, shape=(2,))
@@ -111,8 +121,6 @@ class FemaleDecisionHybriTurnFly(Fly):
             )
         return stumbling_sensors
 
-    def set_hybrid_turning(self, hybrid_turning):
-        self.hybrid_turning = hybrid_turning
         
     def _retraction_rule_find_leg(self, obs):
         """Returns the index of the leg that needs to be retracted, or None
@@ -194,8 +202,14 @@ class FemaleDecisionHybriTurnFly(Fly):
             Array of shape (2,) containing descending signal encoding
             turning.
         """
+        
+        # make sure action shape is correct for hybrid turning or normal joint control
         if not self.hybrid_turning:
+            assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
             return super().pre_step(action, sim)
+        else:
+            assert action.shape == (2,), f"Action shape must be (2,), got {action.shape}."
+            
         
         physics = sim.physics
 
@@ -257,6 +271,31 @@ class FemaleDecisionHybriTurnFly(Fly):
             "adhesion": np.array(adhesion_onoff).astype(int),
         }
         return super().pre_step(action, sim)
+    
+    def set_hybrid_turning(self, hybrid_turning):
+        self.hybrid_turning = hybrid_turning
+
+    def get_hybrid_turning(self):
+        return self.hybrid_turning
+    
+    def get_female_mating_decision(self, odor_intensities, timestep):
+        I_reshaped = odor_intensities.reshape((self.odor_dimensions, 2, 2))
+        odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
+        
+        # Decision making
+        if np.max(np.abs(odor_intesity_smelled)) > self.odor_threshold:
+            self.time_since_odor_high += timestep
+            if self.time_since_odor_high > 1: #in seconds
+                if odor_intesity_smelled[1] > 0: # aversive odor detected
+                    mating_decision = "reject"
+                elif odor_intesity_smelled[0] > self.odor_own_smelling+0.05: # attractive odor detected (own smelling+margin)
+                    mating_decision = "accept"
+                else:
+                    mating_decision = "fly_close_but_no_decision"
+        else:
+            self.time_since_odor_high = 0
+            mating_decision = "no_fly_nearby"
+        return mating_decision
 
 
 if __name__ == "__main__":
@@ -270,28 +309,28 @@ if __name__ == "__main__":
         for segment in ["Tibia", "Tarsus1", "Tarsus2", "Tarsus3", "Tarsus4", "Tarsus5"]
     ]
 
-    fly = HybridTurningFly(
-        timestep=timestep,
-        enable_adhesion=True,
-        draw_adhesion=True,
-        actuator_kp=20,
-        contact_sensor_placements=contact_sensor_placements,
-        spawn_pos=(0, 0, 0.2),
-    )
+    # fly = HybridTurningFly(
+    #     timestep=timestep,
+    #     enable_adhesion=True,
+    #     draw_adhesion=True,
+    #     actuator_kp=20,
+    #     contact_sensor_placements=contact_sensor_placements,
+    #     spawn_pos=(0, 0, 0.2),
+    # )
 
-    cam = Camera(fly=fly, camera_id="Animat/camera_top", play_speed=0.1)
-    sim = SingleFlySimulation(fly=fly, cameras=[cam], timestep=1e-4)
-    check_env(sim)
+    # cam = Camera(fly=fly, camera_id="Animat/camera_top", play_speed=0.1)
+    # sim = SingleFlySimulation(fly=fly, cameras=[cam], timestep=1e-4)
+    # check_env(sim)
 
-    obs, info = sim.reset()
-    for i in trange(int(run_time / sim.timestep)):
-        curr_time = i * sim.timestep
-        if curr_time < 1:
-            action = np.array([1.2, 0.2])
-        else:
-            action = np.array([0.2, 1.2])
+    # obs, info = sim.reset()
+    # for i in trange(int(run_time / sim.timestep)):
+    #     curr_time = i * sim.timestep
+    #     if curr_time < 1:
+    #         action = np.array([1.2, 0.2])
+    #     else:
+    #         action = np.array([0.2, 1.2])
 
-        obs, reward, terminated, truncated, info = sim.step(action)
-        sim.render()
+    #     obs, reward, terminated, truncated, info = sim.step(action)
+    #     sim.render()
 
-    cam.save_video("./outputs/hybrid_turning.mp4")
+    # cam.save_video("./outputs/hybrid_turning.mp4")
