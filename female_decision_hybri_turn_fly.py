@@ -273,12 +273,32 @@ class FemaleDecisionHybriTurnFly(Fly):
         return super().pre_step(action, sim)
     
     def set_hybrid_turning(self, hybrid_turning):
+        """
+        Set the hybrid turning mode. hybrid_turning is a boolean variable
+        """
         self.hybrid_turning = hybrid_turning
 
     def get_hybrid_turning(self):
         return self.hybrid_turning
     
     def get_female_mating_decision(self, odor_intensities, timestep):
+        """
+        Returns a decision based on the odor intensities.
+        The decision can be one of the following: 
+         - "reject" : if aversive odor is detected
+         - "accept" : if attractive odor is detected
+         - "fly_close_but_no_decision" : if attractive odor is detected but not enough to make a decision
+         - "no_fly_nearby" : if no odor is detected
+         
+        Parameters
+        ----------
+        odor_intensities : np.ndarray
+            Array of shape (4,) containing the intensities of the odors.
+            The first two elements correspond to the attractive odor, and the
+            last two elements correspond to the aversive odor.
+        timestep : float
+            The time elapsed since the last call to this method.
+        """
         I_reshaped = odor_intensities.reshape((self.odor_dimensions, 2, 2))
         odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
         
@@ -286,9 +306,9 @@ class FemaleDecisionHybriTurnFly(Fly):
         if np.max(np.abs(odor_intesity_smelled)) > self.odor_threshold:
             self.time_since_odor_high += timestep
             if self.time_since_odor_high > 1: #in seconds
-                if odor_intesity_smelled[1] > 0: # aversive odor detected
+                if odor_intesity_smelled[1] > 0: # aversive odor
                     mating_decision = "reject"
-                elif odor_intesity_smelled[0] > self.odor_own_smelling+0.05: # attractive odor detected (own smelling+margin)
+                elif odor_intesity_smelled[0] > self.odor_own_smelling+0.05: # attractive odor (own smelling+margin)
                     mating_decision = "accept"
                 else:
                     mating_decision = "fly_close_but_no_decision"
