@@ -245,7 +245,9 @@ class MovOdorArena(BaseArena):
             Time step to calculate the movement.
         """
         for i in range(len(self.odor_source)):
-            physics.bind(self.marker_bodies[i]).mocap_pos = self.odor_source[i]
+            position_marker_odor = self.odor_source[i]
+            position_marker_odor[2] = 4
+            physics.bind(self.marker_bodies[i]).mocap_pos = position_marker_odor
         
         #physics.bind(self.marker_bodies[0]).mocap_pos = self.odor_source[0]
 
