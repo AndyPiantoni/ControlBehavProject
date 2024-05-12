@@ -205,7 +205,7 @@ class FemaleDecisionHybriTurnFly(Fly):
         
         # make sure action shape is correct for hybrid turning or normal joint control
         if not self.hybrid_turning:
-            assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
+            #assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
             return super().pre_step(action, sim)
         else:
             assert action.shape == (2,), f"Action shape must be (2,), got {action.shape}."

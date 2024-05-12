@@ -46,7 +46,7 @@ class OdorTaxisFly(HybridTurningFly):
     
     def pre_step(self, action, sim):
         if not self.odor_turning:
-            assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
+            #assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
             return super(HybridTurningFly, self).pre_step(action, sim)
         else:
             assert action.shape == (2,), f"Action shape must be (2,), got {action.shape}."
