@@ -10,6 +10,7 @@ class OdorTaxisFly(HybridTurningFly):
         self.num_substeps = int(self.decision_interval / self.timestep)
         self.odor_gains = odor_gains
         self._reached_odor_source = False
+        self.odor_turning = True
         
         assert len(odor_gains) == 2, "The number of odor gains should be 2 (one for attractive and one for aversive odors)"
 
@@ -46,3 +47,12 @@ class OdorTaxisFly(HybridTurningFly):
         else:
             self._reached_odor_source = False
         return control_signal
+    
+    def pre_step(self, action, sim):
+        if not self.odor_turning:
+            assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
+            return super(HybridTurningFly, self).pre_step(action, sim)
+        else:
+            assert action.shape == (2,), f"Action shape must be (2,), got {action.shape}."
+            return super(OdorTaxisFly, self).pre_step(action, sim)
+    

@@ -83,7 +83,7 @@ class MovOdorArena(BaseArena):
         marker_size: float = 0.25,
         move_speed=0.5,
         move_direction="right",
-        
+        no_odor_marker=True
     ):
         self.root_element = mjcf.RootElement()
         ground_size = [*size, 1]
@@ -141,6 +141,7 @@ class MovOdorArena(BaseArena):
         )
 
         # Add markers at the odor sources
+        self.no_odor_marker = no_odor_marker
         if marker_colors is None:
             color_cycle_rgb = load_config()["color_cycle_rgb"]
             marker_colors = []
@@ -155,9 +156,14 @@ class MovOdorArena(BaseArena):
             marker_body = self.root_element.worldbody.add(
                 "body", name=f"odor_source_marker_{i}", pos=pos, mocap=True
             )
-            marker_body.add(
-                "geom", type="capsule", size=(marker_size, marker_size), rgba=rgba
-            )
+            if no_odor_marker == False:
+                marker_body.add(
+                    "geom", type="capsule", size=(marker_size, marker_size), rgba=rgba
+                )
+            else:
+                marker_body.add(
+                    "geom", type="capsule", size=(0.01, 0.01), rgba=rgba
+                )
             self.marker_bodies.append(marker_body)
         
         self.move_speed = move_speed
@@ -248,6 +254,4 @@ class MovOdorArena(BaseArena):
             position_marker_odor = self.odor_source[i]
             position_marker_odor[2] = 4
             physics.bind(self.marker_bodies[i]).mocap_pos = position_marker_odor
-        
-        #physics.bind(self.marker_bodies[0]).mocap_pos = self.odor_source[0]
-
+            
