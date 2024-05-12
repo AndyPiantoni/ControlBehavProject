@@ -9,6 +9,7 @@ class OdorTaxisFly(HybridTurningFly):
         self.odor_dimensions = odor_dimensions
         self.num_substeps = int(self.decision_interval / self.timestep)
         self.odor_gains = odor_gains
+        self._reached_odor_source = False
         
         assert len(odor_gains) == 2, "The number of odor gains should be 2 (one for attractive and one for aversive odors)"
 
@@ -38,8 +39,10 @@ class OdorTaxisFly(HybridTurningFly):
             
         # Set control signal to zero if attractive odor intensity is above a threshold
         if(I_l[0] > self.odor_threshold or I_r[0] > self.odor_threshold): 
+            if self._reached_odor_source == False:
+                print("Fly is close to the odor source, stopping the fly")
+                self._reached_odor_source = True
             control_signal = np.zeros((2,))
-            if not reached_odor_source:
-                reached_odor_source = True
-                print("Reached odor source!")
+        else:
+            self._reached_odor_source = False
         return control_signal
