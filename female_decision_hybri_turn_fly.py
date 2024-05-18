@@ -30,7 +30,7 @@ class FemaleDecisionHybriTurnFly(Fly):
         timestep,
         preprogrammed_steps=None,
         odor_dimensions=2,                    # relative to odor
-        odor_threshold=[0.135, 0.029],        # relative to odor
+        odor_threshold=[0.119, 0.029],        # relative to odor
         odor_own_smelling=0.1058,             # relative to odor
         intrinsic_freqs=np.ones(6) * 12,
         intrinsic_amps=np.ones(6) * 1,
@@ -281,7 +281,7 @@ class FemaleDecisionHybriTurnFly(Fly):
     def get_hybrid_turning(self):
         return self.hybrid_turning
     
-    def get_female_mating_decision(self, odor_intensities, timestep):
+    def get_female_mating_decision(self, odor_intensities, timestep, time_before_decision=1.0):
         """
         Returns a decision based on the odor intensities.
         The decision can be one of the following: 
@@ -299,14 +299,18 @@ class FemaleDecisionHybriTurnFly(Fly):
             last two elements correspond to the aversive odor.
         timestep : float
             The time elapsed since the last call to this method.
+        time_before_decision : float
+            The time in seconds before a decision is made.
         """
         I_reshaped = odor_intensities.reshape((self.odor_dimensions, 2, 2))
         odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
         
         # Decision making
+        print(odor_intesity_smelled)
         if odor_intesity_smelled[0] > self.odor_threshold[0] or odor_intesity_smelled[1] > self.odor_threshold[1]:
+        #if odor_intesity_smelled[0] > 0.01 or odor_intesity_smelled[1] > self.odor_threshold[1]:
             self.time_since_odor_high += timestep
-            if self.time_since_odor_high > 1: #in seconds
+            if self.time_since_odor_high >= time_before_decision: #in seconds
                 if odor_intesity_smelled[1] > 0: # aversive odor
                     mating_decision = "reject"
                 elif odor_intesity_smelled[0] > self.odor_own_smelling+0.01: # attractive odor (own smelling+margin)
