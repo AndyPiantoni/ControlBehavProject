@@ -85,7 +85,7 @@ class MovOdorArena(BaseArena):
         move_direction="right",
         no_odor_marker=True
     ):
-        self.root_element = mjcf.RootElement()
+        super().__init__()
         ground_size = [*size, 1]
         chequered = self.root_element.asset.add(
             "texture",
