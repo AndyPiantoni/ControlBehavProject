@@ -30,7 +30,7 @@ class FemaleDecisionHybriTurnFly(Fly):
         timestep,
         preprogrammed_steps=None,
         odor_dimensions=2,                    # relative to odor
-        odor_threshold=[0.119, 0.029],        # relative to odor
+        odor_threshold=[0.119, 0.03],        # relative to odor
         odor_own_smelling=0.1,                # relative to odor
         intrinsic_freqs=np.ones(6) * 12,
         intrinsic_amps=np.ones(6) * 1,
@@ -304,10 +304,9 @@ class FemaleDecisionHybriTurnFly(Fly):
         """
         I_reshaped = odor_intensities.reshape((self.odor_dimensions, 2, 2))
         odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
-        
+        print(odor_intesity_smelled)
         # Decision making
         if odor_intesity_smelled[0] > self.odor_threshold[0] or odor_intesity_smelled[1] > self.odor_threshold[1]:
-        #if odor_intesity_smelled[0] > 0.01 or odor_intesity_smelled[1] > self.odor_threshold[1]:
             self.time_since_odor_high += timestep
             if self.time_since_odor_high >= time_before_decision: #in seconds
                 if odor_intesity_smelled[1] > 0: # aversive odor
