@@ -2,7 +2,7 @@ from hybrid_turning_fly import HybridTurningFly
 import numpy as np
 
 class OdorTaxisFly(HybridTurningFly):
-    def __init__(self, odor_dimensions, odor_gains, odor_threshold=0.15, decision_interval=0.05, **kwargs):
+    def __init__(self, odor_dimensions, odor_gains, odor_threshold=0.14, decision_interval=0.05, **kwargs):
         super().__init__(**kwargs, enable_vision=True)
         self.odor_threshold = odor_threshold
         self.decision_interval = decision_interval
