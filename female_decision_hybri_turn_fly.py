@@ -3,7 +3,8 @@ from tqdm import trange
 from gymnasium import spaces
 from gymnasium.utils.env_checker import check_env
 
-from flygym.simulation import SingleFlySimulation, Fly
+# from flygym.simulation import Fly
+from abdomen_fly import AbdomenFly
 from flygym.examples.common import PreprogrammedSteps
 from flygym.examples.cpg_controller import CPGNetwork
 from flygym.preprogrammed import get_cpg_biases
@@ -24,7 +25,7 @@ _contact_sensor_placements = tuple(
 )
 
 
-class FemaleDecisionHybriTurnFly(Fly):
+class FemaleDecisionHybriTurnFly(AbdomenFly):
     def __init__(
         self,
         timestep,
@@ -205,7 +206,7 @@ class FemaleDecisionHybriTurnFly(Fly):
         
         # make sure action shape is correct for hybrid turning or normal joint control
         if not self.hybrid_turning:
-            #assert action.shape == (42,), f"Action shape must be (42,), got {action.shape}."
+            assert isinstance(action, dict) and len(action)==2, f"Action must be a dictionary and of length 2, got {type(action)}."
             return super().pre_step(action, sim)
         else:
             assert action.shape == (2,), f"Action shape must be (2,), got {action.shape}."
@@ -265,9 +266,13 @@ class FemaleDecisionHybriTurnFly(Fly):
                 leg, self.cpg_network.curr_phases[i]
             )
             adhesion_onoff.append(my_adhesion_onoff)
-
+        joints_angles = np.array(np.concatenate(joints_angles)).flatten()  
+        
+        # add joint angles for abdomen joints (A1A2, A3, A4, A5, A6)
+        for _ in ["A1A2", "A3", "A4", "A5", "A6"]:
+            joints_angles = np.append(joints_angles, 0)
         action = {
-            "joints": np.array(np.concatenate(joints_angles)),
+            "joints":joints_angles,
             "adhesion": np.array(adhesion_onoff).astype(int),
         }
         return super().pre_step(action, sim)
@@ -304,7 +309,6 @@ class FemaleDecisionHybriTurnFly(Fly):
         """
         I_reshaped = odor_intensities.reshape((self.odor_dimensions, 2, 2))
         odor_intesity_smelled = np.average(np.average(I_reshaped, axis=1, weights=[120, 1200]), axis=1) # axis 0: attractive odor, axis 1: aversive odor
-        print(odor_intesity_smelled)
         # Decision making
         if odor_intesity_smelled[0] > self.odor_threshold[0] or odor_intesity_smelled[1] > self.odor_threshold[1]:
             self.time_since_odor_high += timestep
